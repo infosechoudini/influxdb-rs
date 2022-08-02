@@ -13,4 +13,6 @@ COPY ./ /build/
 
 WORKDIR /build/
 
+RUN cargo build --release
+
 CMD ["cargo", "test"]
