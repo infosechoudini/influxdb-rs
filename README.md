@@ -2,6 +2,8 @@
 
 InfluxDB Rust Client for Influx APIv2
 
+[![Build Status](https://app.travis-ci.com/infosechoudini/influxdb-rs.svg?branch=main)](https://app.travis-ci.com/infosechoudini/influxdb-rs)
+
 ## Overview
 
 This is the InfluxDB driver to be utilized with the Rust programming language. It is mainly ASYNC but will include future work to have synchronous actions as well. The driver is aimed to be used with the version 2 of the InfluxDB API. There can be backwards compatibility with the 1.x endpoints but that is not the true aim of this crate. 
