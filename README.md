@@ -1,8 +1,11 @@
-# Influxdb-rs
+# Influxdb-rs ![Crates.io](https://img.shields.io/crates/v/influxdb_rs.svg)
+----
+## Build Status [![Build Status](https://app.travis-ci.com/infosechoudini/influxdb-rs.svg?branch=main)](https://app.travis-ci.com/infosechoudini/influxdb-rs)
+
+
+## TL;DR
 
 InfluxDB Rust Client for Influx APIv2
-
-[![Build Status](https://app.travis-ci.com/infosechoudini/influxdb-rs.svg?branch=main)](https://app.travis-ci.com/infosechoudini/influxdb-rs)
 
 ## Overview
 
