@@ -4,10 +4,11 @@ version = "0.1.0"
 authors = ["Harry Thomas @infosechoudini"]
 description = "InfluxDBv2 Rust driver"
 readme = "README.md"
-keywords = ["influxdb"]
+keywords = ["influxdb", "driver", "client"]
 categories = ["database"]
 edition = "2021"
-publish = false
+repository = "https://github.com/infosechoudini/influxdb-rs"
+publish = true
 license-file = "LICENSE"
 
 [dependencies]
