@@ -1,6 +1,6 @@
 [package]
 name = "influxdb_rs"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Harry Thomas @infosechoudini"]
 description = "InfluxDBv2 Rust driver"
 readme = "README.md"
