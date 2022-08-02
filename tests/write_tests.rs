@@ -1,27 +1,32 @@
 use influxdb_rs::{point, points, Client, Point, Points, Precision};
-use std::thread::sleep;
-use std::time::Duration;
 use url::Url;
 use chrono::prelude::*;
 
 #[tokio::test]
 async fn create_and_delete_database() {
+    // Create client with a parsed url, bucket, org, and jwt token
     let client = Client::new(Url::parse("http://localhost:8086").unwrap(), "test_bucket", "test_org", "0123456789").await.unwrap();
 
+    let create = client.create_database("temporary").await;
 
     // Do a check to see if the bucket is already created
-    if client.create_database("temporary").await.is_ok(){
-        client.drop_database("temporary").await.unwrap();
+    if create.is_ok() {
+        let drop = client.drop_database("temporary").await;
+
+        assert_eq!(drop.is_ok(), true);
+
     } else {
         // Delete bucket after verifying that one already exists
-        // Next test should run the first part of the if statement
-        client.drop_database("temporary").await.unwrap();
+        let drop = client.drop_database("temporary").await;
+
+        assert_eq!(drop.is_ok(), true);
     }
 
 }
 
 #[tokio::test]
 async fn create_and_delete_measurement() {
+    // Create client with a parsed url, bucket, org, and jwt token
     let client = Client::new(Url::parse("http://localhost:8086").unwrap(), "test_bucket", "test_org", "0123456789").await.unwrap();
     
     let now = Utc::now();
@@ -34,23 +39,26 @@ async fn create_and_delete_measurement() {
         .add_timestamp(now.timestamp());
 
     let result = client.write_point(point, Some(Precision::Seconds), None).await;
-    if result.is_err(){
-        // Error!
-    }
+
+    // No need to check to see whether the fieds and timestamp are available 
+    // variable drop verifies that for us
+    assert_eq!(result.is_ok(), true);
 
     let later = Utc::now().to_rfc3339().to_string();
 
-    client.drop_measurement("temporary", &now.to_rfc3339(), &later).await.unwrap();
+
+    // No Error means the value was present
+    let drop = client.drop_measurement("temporary", &now.to_rfc3339(), &later).await;
+
+    assert_eq!(drop.is_ok(), true);
+
 }
 
 #[tokio::test]
 async fn use_points() {
-
+    // Create client with a parsed url, bucket, org, and jwt token
     let client = Client::new(Url::parse("http://localhost:8086").unwrap(), "test_bucket", "test_org", "0123456789").await.unwrap();
     let now = Utc::now();
-
-
-
     let point = Point::new("test1")
         .add_field("foo", "bar")
         .add_field("integer", 11)
@@ -65,26 +73,29 @@ async fn use_points() {
 
     let points = Points::create_new(vec![point1, point]);
 
-    client.write_points(points, Some(Precision::Seconds), None).await.unwrap();
+    let write_points = client.write_points(points, Some(Precision::Seconds), None).await;
 
-    sleep(Duration::from_secs(3));
-
+    assert_eq!(write_points.is_ok(), true);
 
     let later = Utc::now().to_rfc3339().to_string();
 
+    let drop1 = client.drop_measurement("test1", &now.to_rfc3339(), &later).await;
 
-    client.drop_measurement("test1", &now.to_rfc3339(), &later).await.unwrap();
-    client.drop_measurement("test2", &now.to_rfc3339(), &later).await.unwrap();
+    assert_eq!(drop1.is_ok(), true);
+
+    let drop2 = client.drop_measurement("test2", &now.to_rfc3339(), &later).await;
+
+    assert_eq!(drop2.is_ok(), true);
 }
 
 #[tokio::test]
 async fn query_with_macros() {
-
-
+    // Create client with a parsed url, bucket, org, and jwt token
     let client = Client::new(Url::parse("http://localhost:8086").unwrap(), "test_bucket", "test_org", "0123456789").await.unwrap();
+    // Need a date-timestamp for insert
     let now = Utc::now();
 
-
+    // user macro to create points
     let point = point!("test4").add_field("foo", "bar");
     let point1 = point.clone();
     let point = point.add_timestamp(now.timestamp());
@@ -96,6 +107,7 @@ async fn query_with_macros() {
 
     let later = Utc::now();
 
+    // NOTE: convert time from timstamp_nanos() due to to_rfc3339() doesn't convert nicely with GOLANG
     let flux_query = format!("from(bucket: \"test_bucket\") 
     |> range(start: time(v: {:?}))
     |> filter(fn: (r) => r._measurement == \"test4\")
@@ -113,9 +125,9 @@ async fn query_with_macros() {
     let result = client.query(Some(query)).await;
 
 
-    assert!(result.is_ok(), "{:?}", result.err());
+    assert_eq!(result.is_ok(), true);
 
+    let drop = client.drop_measurement("test4", &now.to_rfc3339(), &later.to_rfc3339()).await;
 
-
-    client.drop_measurement("test4", &now.to_rfc3339(), &later.to_rfc3339()).await.unwrap();
+    assert_eq!(drop.is_ok(), true);
 }

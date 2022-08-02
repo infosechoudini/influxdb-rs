@@ -6,13 +6,13 @@ description = "InfluxDBv2 Rust driver"
 readme = "README.md"
 keywords = ["influxdb"]
 categories = ["database"]
-edition = "2018"
+edition = "2021"
 publish = false
 license-file = "LICENSE"
 
 [dependencies]
 reqwest = { version = "^0.11", default-features = false, features = ["json"] }
-serde_json = '^1.0.2'
+serde_json = '^1.0.82'
 serde = { version = "^1.0.14", features = ["derive"] }
 bytes = "^1"
 futures = "^0.3.21"
@@ -24,13 +24,16 @@ rocket_db_pools = { version = "0.1.0-rc.2", optional = true }
 [dev-dependencies]
 tempdir = "0.3"
 tokio = { version = "1", features = ["full"] }
-url = { version = "2.2.2" }
-
+criterion = { version = "0.3", features = ["async_tokio"] }
 
 [features]
-# Default reqwest TLS
-default = ["reqwest/default-tls"]
 # Rocker Driver
 rocket_driver = ["rocket_db_pools", "rocket"]
 # For using rustls-tls (and no need for openssl anymore)
-rustls-tls = ["reqwest/rustls-tls"]
+# Default is rusttls-tls due to speed Openssl == 60ms vs RustTls == 2ms
+default = ["reqwest/rustls-tls"]
+
+[[bench]]
+name = "io_bench"
+path = "benches/io_bench.rs"
+harness = false

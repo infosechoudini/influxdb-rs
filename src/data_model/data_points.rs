@@ -1,3 +1,6 @@
+// inspo from influx_db_client
+// Utilized the same macros
+
 use serde::{Deserialize, Serialize};
 use std::{
     borrow::Cow,
@@ -6,7 +9,7 @@ use std::{
     slice::Iter,
 };
 
-/// Influxdb value, Please look at [this address](https://docs.influxdata.com/influxdb/v1.3/write_protocols/line_protocol_reference/)
+/// Influxdb Value
 #[derive(Debug, Clone, Deserialize, PartialEq, Serialize)]
 #[serde(untagged)]
 pub enum Value<'a> {
@@ -155,7 +158,7 @@ macro_rules! points {
         {
             let mut temp_vec = Vec::new();
             $(temp_vec.push($x);)*
-            Points { point: temp_vec }
+            influxdb_rs::Points{ point: temp_vec }
         }
     };
 }

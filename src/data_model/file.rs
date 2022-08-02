@@ -1,4 +1,7 @@
+// Struct used from inflxdb2_client 
+// modified to fit influxdb_rs use case
 //! File
+
 
 use serde::{Deserialize, Serialize};
 

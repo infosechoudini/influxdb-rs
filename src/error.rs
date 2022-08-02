@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use std::error::Error as StdError;
 use std::fmt;
 use std::io;
 use futures::Future;
@@ -45,19 +44,6 @@ impl From<io::Error> for Error {
 impl From<reqwest::Error> for Error {
     fn from(err: reqwest::Error) -> Self {
         Error::Communication(format!("{}", err))
-    }
-}
-
-impl StdError for Error {
-    fn description(&self) -> &str {
-        match *self {
-            Error::SyntaxError(ref t) => t,
-            Error::InvalidCredentials(ref t) => t,
-            Error::DataBaseDoesNotExist(ref t) => t,
-            Error::RetentionPolicyDoesNotExist(ref t) => t,
-            Error::Communication(ref t) => t,
-            Error::Unknow(ref t) => t,
-        }
     }
 }
 

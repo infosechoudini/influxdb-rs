@@ -1,3 +1,6 @@
+// inspo from influxdb2_client
+// utilized some structs and serde elements
+
 use serde::{Serialize, Deserialize};
 use crate::data_model::file::File;
 

@@ -1,10 +1,7 @@
 use futures::prelude::*;
-use reqwest::{Client as HttpClient, Url};
+use reqwest::{Client as HttpClient, Url, header};
 use std::{
     borrow::Borrow,
-    iter::FromIterator,
-    net::UdpSocket,
-    net::{SocketAddr, ToSocketAddrs},
 };
 
 use crate::{error, serialization, Point, Points, Precision, data_model};
@@ -32,57 +29,63 @@ pub struct Client {
 
 impl Client {
     /// Create a new influxdb client with http
-    pub fn new<T>(host: Url, bucket: T, org: T, jwt: T) -> impl Future<Output = Result<Self, error::Error>>
+    #[inline] 
+    pub async fn new<T>(host: Url, bucket: T, org: T, jwt: T) -> Result<Self, error::Error>
     where
         T: Into<String>,
     {
+
+        let token = jwt.into();
+        let authorized = format!("Token {}", token.clone());
+
+        let mut headers = header::HeaderMap::new();
+        headers.insert("Authorization", header::HeaderValue::from_str(&authorized).unwrap());
+
+        // get a client builder
+        let httpclient = reqwest::Client::builder()
+            .default_headers(headers)
+            .build()?;
+
         let mut client = Client {
             host,
             bucket: bucket.into(),
             org: org.into(),
             org_id: "".to_string(),
             authentication: None,
-            jwt_token: Some(jwt.into()),
-            client: HttpClient::default(),
+            jwt_token: Some(token.clone()),
+            client: httpclient,
         };
 
-        async {
-            client.org_id = client.get_ord_id().await?;
-            Ok(client)
-        }
+        client.org_id = client.get_ord_id().await?;
+        Ok(client)
 
 
     }
 
     /// Retrieves Organization ID which is represented inside InfluxDB
-    pub fn get_ord_id(&mut self) -> impl Future<Output = Result<String, error::Error>> {
+    #[inline] 
+    pub async fn get_ord_id(&mut self) -> Result<String, error::Error> {
         let param = vec![("org", self.org.as_str())];
 
         let url = self.build_url("api/v2/orgs", Some(param));
-        let fut = self.client.get(url).bearer_auth(self.jwt_token.clone().unwrap()).send();
+        let fut = self.client.get(url.await).send();
 
-        async move {
-            let res = fut.await?;
-            let status = res.status().as_u16();
+        let res = fut.await?;
+        let status = res.status().as_u16();
 
-            match status {
-                200 => {
-                    let contents = res.json::<data_model::org::Orgs>().await;
-                    if contents.is_ok(){
-                        let org_id = contents.unwrap().orgs[0].id.clone();
-                        Ok(org_id)
-                    } else {
-                        Err(error::Error::SyntaxError(serialization::conversion(&contents.err().unwrap().to_string())))
-                    }
+        match status {
+            200 => {
+                let contents = res.json::<data_model::org::Orgs>().await?;
+                let org_id = contents.orgs[0].id.clone();
+                Ok(org_id)
+            }
+            _ => {
+                let err = res.text().await?;
 
-                }
-                _ => {
-                    let err = res.text().await?;
-
-                    Err(error::Error::SyntaxError(serialization::conversion(&err)))
-                }
+                Err(error::Error::SyntaxError(serialization::conversion(&err)))
             }
         }
+        
     }
 
 
@@ -103,6 +106,7 @@ impl Client {
     }
 
     /// Change the client's database
+    #[inline] 
     pub fn switch_database<T>(&mut self, database: T)
     where
         T: Into<String>,
@@ -111,6 +115,7 @@ impl Client {
     }
 
     /// Change the client's user
+    #[inline] 
     pub fn set_authentication<T>(mut self, user: T, passwd: T) -> Self
     where
         T: Into<String>,
@@ -120,6 +125,7 @@ impl Client {
     }
 
     /// Set the client's jwt token
+    #[inline] 
     pub fn set_jwt_token<T>(mut self, token: T) -> Self
     where
         T: Into<String>,
@@ -129,15 +135,17 @@ impl Client {
     }
 
     /// View the current db name
+    #[inline] 
     pub fn get_db(&self) -> &str {
         self.bucket.as_str()
     }
 
     /// Query whether the corresponding database exists, return bool
+    #[inline] 
     pub  async fn ping(&self) -> impl Future<Output = Result<bool, error::Error>> {
         let url = self.build_url("ping", None);
 
-        let resp_future = self.client.get(url).bearer_auth(self.jwt_token.clone().unwrap()).send().boxed();
+        let resp_future = self.client.get(url.await).send().boxed();
         
         async move {
             let res = resp_future.await?;
@@ -153,57 +161,55 @@ impl Client {
     }
 
     /// Query the version of the database and return the version number
-    pub fn get_version(&self) -> impl Future<Output = Result<String, error::Error>>{
+    pub async fn get_version(&self) ->  Result<String, error::Error>{
         let url = self.build_url("ping", None);
 
-        let resp_future = self.client.get(url).bearer_auth(self.jwt_token.clone().unwrap()).send().boxed();
+    let resp_future = self.client.get(url.await).send().boxed();
+    
+        let res = resp_future.await?;
+        let status = res.status().as_u16();
+        let headers = res.headers().get("X-Influxdb-Version");
         
-        async move {
-            let res = resp_future.await?;
-            let status = res.status().as_u16();
-            let headers = res.headers().get("X-Influxdb-Version");
-            
-            match status{
-                204 => {            
+        match status{
+            204 => {            
 
-                    match headers {
-                        Some(header) => {
-                            let version = header.to_owned().to_str().unwrap().to_string();
-                            Ok(version)
-                        }
-                        None => {
-                            Ok(String::from("Don't know"))
-                        }
+                match headers {
+                    Some(header) => {
+                        let version = header.to_owned().to_str().unwrap().to_string();
+                        Ok(version)
                     }
-                },
-                _ => {
-                    let err = res.text().await?;
-
-                    Err(error::Error::SyntaxError(serialization::conversion(&err)))
+                    None => {
+                        Ok(String::from("Don't know"))
+                    }
                 }
+            },
+            _ => {
+                let err = res.text().await?;
+
+                Err(error::Error::SyntaxError(serialization::conversion(&err)))
             }
         }
 
     }
 
     /// Write a point to the database
-    pub fn write_point<'a>(
+    pub async fn write_point<'a>(
         &self,
         point: Point<'a>,
         precision: Option<Precision>,
         rp: Option<&str>,
-    ) -> impl Future<Output = Result<(), error::Error>> + 'a {
+    ) -> Result<(), error::Error>{
         let points = Points::new(point);
-        self.write_points(points, precision, rp)
+        self.write_points(points, precision, rp).await
     }
 
     /// Write multiple points to the database
-    pub fn write_points<'a, T: IntoIterator<Item = impl Borrow<Point<'a>>>>(
+    pub async fn write_points<'a, T: IntoIterator<Item = impl Borrow<Point<'a>>>>(
         &self,
         points: T,
         precision: Option<Precision>,
         rp: Option<&str>,
-    ) -> impl Future<Output = Result<(), error::Error>> {
+    ) -> Result<(), error::Error> {
         let line = serialization::line_serialization(points);
 
         let mut param = vec![("bucket", self.bucket.as_str()), ("org", self.org.as_str())];
@@ -218,39 +224,37 @@ impl Client {
         }
 
         let url = self.build_url("api/v2/write", Some(param));
-        let fut = self.client.post(url).bearer_auth(self.jwt_token.clone().unwrap()).body(line).send();
+        let fut = self.client.post(url.await).body(line).send();
 
-        async move {
-            let res = fut.await?;
-            let status = res.status().as_u16();
-            let err = res.text().await?;
+        let res = fut.await?;
+        let status = res.status().as_u16();
+        let err = res.text().await?;
 
-            match status {
-                204 => Ok(()),
-                400 => Err(error::Error::SyntaxError(serialization::conversion(&err))),
-                401 | 403 => Err(error::Error::InvalidCredentials(
-                    "Invalid authentication credentials.".to_string(),
-                )),
-                404 => Err(error::Error::DataBaseDoesNotExist(
-                    serialization::conversion(&err),
-                )),
-                500 => Err(error::Error::RetentionPolicyDoesNotExist(err)),
-                status => Err(error::Error::Unknow(format!(
-                    "Received status code {}",
-                    status
-                ))),
-            }
+        match status {
+            204 => Ok(()),
+            400 => Err(error::Error::SyntaxError(serialization::conversion(&err))),
+            401 | 403 => Err(error::Error::InvalidCredentials(
+                "Invalid authentication credentials.".to_string(),
+            )),
+            404 => Err(error::Error::DataBaseDoesNotExist(
+                serialization::conversion(&err),
+            )),
+            500 => Err(error::Error::RetentionPolicyDoesNotExist(err)),
+            status => Err(error::Error::Unknow(format!(
+                "Received status code {}",
+                status
+            ))),
         }
     }
 
 
     /// Drop measurement
-    pub fn drop_measurement(
+    pub async fn drop_measurement(
         &self,
         measurement: &str, 
         start: &str,
         stop: &str,
-    ) -> impl Future<Output = Result<(), error::Error>> {
+    ) -> Result<(), error::Error> {
         let param = vec![("bucket", self.bucket.as_str()),("org", self.org.as_str())];
 
         let url = self.build_url("api/v2/delete", Some(param));
@@ -263,31 +267,29 @@ impl Client {
             stop: stop.to_string()
         };
 
-        let builder = self.client.post(url).body(json!(body).to_string());
+        let builder = self.client.post(url.await).body(json!(body).to_string());
 
-        let resp_future = builder.bearer_auth(self.jwt_token.clone().unwrap()).send().boxed();
+        let resp_future = builder.send();
 
-        async move {
-            let res = resp_future.await?;
-            match res.status().as_u16() {
-                204 => Ok(()),
-                400 => {
-                    let err = res.text().await?;
+        let res = resp_future.await?;
+        match res.status().as_u16() {
+            204 => Ok(()),
+            400 => {
+                let err = res.text().await?;
 
-                    Err(error::Error::SyntaxError(serialization::conversion(
-                        &err,
-                    )))
-                }
-                401 | 403 => Err(error::Error::InvalidCredentials(
-                    "Invalid authentication credentials.".to_string(),
-                )),
-                _ => Err(error::Error::Unknow("There is something wrong".to_string())),
+                Err(error::Error::SyntaxError(serialization::conversion(
+                    &err,
+                )))
             }
+            401 | 403 => Err(error::Error::InvalidCredentials(
+                "Invalid authentication credentials.".to_string(),
+            )),
+            _ => Err(error::Error::Unknow("There is something wrong".to_string())),
         }
     }
 
     /// Create a new database in InfluxDB.
-    pub fn create_database(&self, dbname: &str) -> impl Future<Output = Result<(), error::Error>> {
+    pub async fn create_database(&self, dbname: &str) -> Result<(), error::Error> {
 
         let retention_rules = data_model::retention_rules::RetentionRules{
             every_seconds: 0,
@@ -308,18 +310,16 @@ impl Client {
         let post_body = json!(body).to_string();
 
         let url = self.build_url("api/v2/buckets", None);
-        let fut = self.client.post(url).bearer_auth(self.jwt_token.clone().unwrap()).body(post_body).send();
+        let fut = self.client.post(url.await).body(post_body).send();
 
-        async move {
-            let res = fut.await?;
-            let status = res.status().as_u16();
-            let err = res.text().await?;
+        let res = fut.await?;
+        let status = res.status().as_u16();
+        let err = res.text().await?;
 
-            match status {
-                201 => Ok(()),
-                422 => Err(error::Error::SyntaxError(serialization::conversion(&err))),
-                _ => Err(error::Error::SyntaxError(serialization::conversion(&err)))
-            }
+        match status {
+            201 => Ok(()),
+            422 => Err(error::Error::SyntaxError(serialization::conversion(&err))),
+            _ => Err(error::Error::SyntaxError(serialization::conversion(&err)))
         }
     }
 
@@ -327,76 +327,59 @@ impl Client {
 
     /// Get bucket id from InfluxDB 
     /// Provide name and get internal ID
-    pub fn get_bucket_id(&self, bucket_name: &str) -> impl Future<Output = Result<String, error::Error>> {
+    pub async fn get_bucket_id(&self, bucket_name: &str) -> Result<String, error::Error> {
         let param = vec![("name", bucket_name)];
 
         let url = self.build_url("api/v2/buckets", Some(param));
-        let fut = self.client.get(url).bearer_auth(self.jwt_token.clone().unwrap()).send();
+        let fut = self.client.get(url.await).send();
 
-        async move {
-            let res = fut.await?;
-            let status = res.status().as_u16();
+        let res = fut.await?;
+        let status = res.status().as_u16();
 
-            match status {
-                200 => {
-                    let contents = res.json::<data_model::bucket::Buckets>().await;
-                    if contents.is_ok(){
-                        let bucket_id = contents.unwrap().buckets[0].id.clone();
-                        Ok(bucket_id)
-                    } else {
-                        Err(error::Error::SyntaxError(serialization::conversion(&contents.err().unwrap().to_string())))
-                    }
+        match status {
+            200 => {
+                let contents = res.json::<data_model::bucket::Buckets>().await?;
+                let bucket_id = contents.buckets[0].id.clone();
+                Ok(bucket_id)
+            }
+            _ => {
+                let err = res.text().await?;
 
-                }
-                _ => {
-                    let err = res.text().await?;
-
-                    Err(error::Error::SyntaxError(serialization::conversion(&err)))
-                }
+                Err(error::Error::SyntaxError(serialization::conversion(&err)))
             }
         }
-
-
-
 
     }
 
     /// Drop a database from InfluxDB.
-    pub fn drop_database(&self, dbname: &str) -> impl Future<Output = Result<(), error::Error>> {
+    pub async fn drop_database(&self, dbname: &str) -> Result<(), error::Error> {
         
         let client = self.clone();
         let name = dbname.to_string();
 
-        async move {
-            let id = client.get_bucket_id(&name.clone()).await?;
-    
-            let url = client.build_url(&format!("api/v2/buckets/{}", id), None);
-            let fut = client.client.delete(url).bearer_auth(client.jwt_token.clone().unwrap()).send();
+        let id = client.get_bucket_id(&name.clone()).await?;
 
-            let res = fut.await?;
-            let status = res.status().as_u16();
-            let err = res.text().await?;
+        let id = format!("api/v2/buckets/{}", id);
 
-            match status {
-                204 => Ok(()),
-                404 => Err(error::Error::SyntaxError(serialization::conversion(&err))),
-                _ => Err(error::Error::SyntaxError(serialization::conversion(&err)))
-            }
+        let url = client.build_url(&id, None);
+        let fut = client.client.delete(url.await).send();
+
+        let res = fut.await?;
+        let status = res.status().as_u16();
+        let err = res.text().await?;
+
+        match status {
+            204 => Ok(()),
+            404 => Err(error::Error::SyntaxError(serialization::conversion(&err))),
+            _ => Err(error::Error::SyntaxError(serialization::conversion(&err)))
         }
     }
 
     /// Constructs the full URL for an API call.
-    pub fn build_url(&self, key: &str, param: Option<Vec<(&str, &str)>>) -> Url {
+    /// No Basic Authentication
+    #[inline] 
+    pub async fn build_url(&self, key: &str, param: Option<Vec<(&str, &str)>>) -> Url {
         let url = self.host.join(key).unwrap();
-
-        let mut authentication = Vec::new();
-
-        if let Some(ref t) = self.authentication {
-            authentication.push(("u", &t.0));
-            authentication.push(("p", &t.1));
-        }
-
-        let url = Url::parse_with_params(url.as_str(), authentication).unwrap();
 
         if let Some(param) = param {
             Url::parse_with_params(url.as_str(), param).unwrap()
@@ -410,68 +393,5 @@ impl Client {
         async {
             Client::new(Url::parse("http://localhost:8086").unwrap(), "test", "test", "00000000").await
         }
-    }
-}
-
-
-/// Udp client
-pub struct UdpClient {
-    hosts: Vec<SocketAddr>,
-}
-
-impl UdpClient {
-    /// Create a new udp client.
-    pub fn new(address: SocketAddr) -> Self {
-        UdpClient {
-            hosts: vec![address],
-        }
-    }
-
-    /// Crates a new UDP client from anything that `ToSocketAddrs` can handle: e.g. a DNS name.
-    pub fn with_host<TSA: ToSocketAddrs>(tsa: TSA) -> Result<Self, error::Error> {
-        let result = Self {
-            hosts: tsa.to_socket_addrs()?.collect(),
-        };
-        Ok(result)
-    }
-
-    /// add udp host.
-    pub fn add_host(&mut self, address: SocketAddr) {
-        self.hosts.push(address)
-    }
-
-    /// View current hosts
-    pub fn get_host(&self) -> &[SocketAddr] {
-        self.hosts.as_ref()
-    }
-
-    /// Send Points to influxdb.
-    pub fn write_points(&self, points: Points) -> Result<(), error::Error> {
-        let socket = UdpSocket::bind("0.0.0.0:0")?;
-
-        let line = serialization::line_serialization(points);
-        let line = line.as_bytes();
-        socket.send_to(line, self.hosts.as_slice())?;
-
-        Ok(())
-    }
-
-    /// Send Point to influxdb.
-    pub fn write_point(&self, point: Point) -> Result<(), error::Error> {
-        let points = Points { point: vec![point] };
-        self.write_points(points)
-    }
-}
-
-impl FromIterator<SocketAddr> for UdpClient {
-    /// Create udp client from iterator.
-    fn from_iter<I: IntoIterator<Item = SocketAddr>>(iter: I) -> Self {
-        let mut hosts = Vec::new();
-
-        for i in iter {
-            hosts.push(i);
-        }
-
-        UdpClient { hosts }
     }
 }
