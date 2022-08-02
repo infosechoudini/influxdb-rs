@@ -1,3 +1,7 @@
+language: rust
+rust:
+  - stable
+
 services:
   - docker
 
@@ -11,4 +15,4 @@ before_install:
   - sudo mv docker-compose /usr/local/bin
 script:
   - docker-compose up -d influx_db
-  - cargo test
+  - cargo test --verbose
