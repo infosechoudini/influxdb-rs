@@ -240,7 +240,7 @@ impl Client {
                 serialization::conversion(&err),
             )),
             500 => Err(error::Error::RetentionPolicyDoesNotExist(err)),
-            status => Err(error::Error::Unknow(format!(
+            status => Err(error::Error::Unknown(format!(
                 "Received status code {}",
                 status
             ))),
@@ -284,7 +284,7 @@ impl Client {
             401 | 403 => Err(error::Error::InvalidCredentials(
                 "Invalid authentication credentials.".to_string(),
             )),
-            _ => Err(error::Error::Unknow("There is something wrong".to_string())),
+            _ => Err(error::Error::Unknown("There is something wrong".to_string())),
         }
     }
 

@@ -43,12 +43,12 @@ impl Client {
                 }
                 _ => {
                     let err = res.text().await?;
-                    return Err(error::Error::Unknow(err));
+                    return Err(error::Error::Unknown(err));
                 }
             }
 
         } else {
-            return Err(error::Error::Unknow("No flux query to serialize".to_string()));
+            return Err(error::Error::Unknown("No flux query to serialize".to_string()));
         };
 
         

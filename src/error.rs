@@ -19,7 +19,7 @@ pub enum Error {
     /// Some error on build url or io.
     Communication(String),
     /// Some other error, I don't expect
-    Unknow(String),
+    Unknown(String),
 }
 
 impl fmt::Display for Error {
@@ -30,7 +30,7 @@ impl fmt::Display for Error {
             Error::DataBaseDoesNotExist(ref t) => write!(f, "{}", t),
             Error::RetentionPolicyDoesNotExist(ref t) => write!(f, "{}", t),
             Error::Communication(ref t) => write!(f, "{}", t),
-            Error::Unknow(ref t) => write!(f, "{}", t),
+            Error::Unknown(ref t) => write!(f, "{}", t),
         }
     }
 }
@@ -61,7 +61,7 @@ impl Future for Error {
             Error::DataBaseDoesNotExist(ref t) => Poll::Ready(format!("{}", t).to_string()),
             Error::RetentionPolicyDoesNotExist(ref t) => Poll::Ready(format!("{}", t).to_string()),
             Error::Communication(ref t) => Poll::Ready(format!("{}", t).to_string()),
-            Error::Unknow(ref t) => Poll::Ready(format!("{}", t).to_string()),
+            Error::Unknown(ref t) => Poll::Ready(format!("{}", t).to_string()),
         }        
     }
 
