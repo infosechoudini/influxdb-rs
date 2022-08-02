@@ -14,5 +14,5 @@ before_install:
   - chmod +x docker-compose
   - sudo mv docker-compose /usr/local/bin
 script:
-  - docker-compose up -d influx_db
-  - cargo test --verbose
+  - docker-compose up influx_db
+  - cargo test
