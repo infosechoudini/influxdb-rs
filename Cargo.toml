@@ -7,6 +7,8 @@ readme = "README.md"
 keywords = ["influxdb"]
 categories = ["database"]
 edition = "2018"
+publish = false
+license-file = "LICENSE"
 
 [dependencies]
 reqwest = { version = "^0.11", default-features = false, features = ["json"] }
@@ -18,7 +20,6 @@ url = { version = "2.2.2" }
 chrono = "0.4.19"
 rocket = { version = "0.5.0-rc.2", optional = true }
 rocket_db_pools = { version = "0.1.0-rc.2", optional = true }
-futures-enum = "0.1.16"
 
 [dev-dependencies]
 tempdir = "0.3"
@@ -27,9 +28,9 @@ url = { version = "2.2.2" }
 
 
 [features]
+# Default reqwest TLS
 default = ["reqwest/default-tls"]
+# Rocker Driver
 rocket_driver = ["rocket_db_pools", "rocket"]
-
-
 # For using rustls-tls (and no need for openssl anymore)
 rustls-tls = ["reqwest/rustls-tls"]
