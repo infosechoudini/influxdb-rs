@@ -11,6 +11,7 @@ repository = "https://github.com/infosechoudini/influxdb-rs"
 publish = true
 license-file = "LICENSE"
 include = [
+    "**/*.rs",
     "src/*.rs",
     "test/*.rs",
     "benches/*.rs",
