@@ -94,4 +94,4 @@ Tested:
 
 ## Thanks
 
-Because [**influxdbclient-rs**](https://github.com/driftluo/InfluxDBClient-rs) only support to the 1.x version. I read [**influxdb2-client**](https://github.com/influxdata/influxdb_iox/tree/main/influxdb2_client) and [**influxdb-client-go**](https://github.com/influxdata/influxdb-client-go) source, and then try to write a library for 1.0+ version for support for my own use.
+Because [**influxdbclient-rs**](https://github.com/driftluo/InfluxDBClient-rs) only supported the 1.x version. I ended up reading [**influxdb2-client**](https://github.com/influxdata/influxdb_iox/tree/main/influxdb2_client) and [**influxdb-client-go**](https://github.com/influxdata/influxdb-client-go) source code and then wrote a library for 2.x API version for support for my own use. [**influxdb2-client**](https://github.com/influxdata/influxdb_iox/tree/main/influxdb2_client); although functioning, was not published to crates so I opted to build my own. Enjoy! 
