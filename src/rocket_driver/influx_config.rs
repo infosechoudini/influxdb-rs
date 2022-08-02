@@ -39,7 +39,7 @@ pub struct Config {
     pub idle_timeout: Option<u64>,
 
     /// Database for the Influx DB Client to connect to
-    pub db: String,
+    pub bucket: String,
     /// Organization for Influx DB
     pub org: String,
     /// Basic Authentication (Optional) for Influx DB

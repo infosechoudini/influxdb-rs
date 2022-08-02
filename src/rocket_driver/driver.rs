@@ -1,5 +1,4 @@
 use crate::client::Client;
-
 use rocket::figment::Figment;
 use rocket_db_pools::Pool;
 use url::Url;
@@ -15,18 +14,18 @@ impl Pool for Client {
 
 
         let config = figment.extract::<Config>()?;
+        let client = Client::new(Url::parse(&config.url).unwrap(), &config.bucket, &config.org, &config.jwt_token.unwrap()).await;
 
-        if config.jwt_token.is_some() {
-            Ok(Client::new(Url::parse(&config.url).unwrap(), &config.db, &config.org).set_jwt_token(&config.jwt_token.unwrap()))
-        } else {
-            let (username, password) = &config.authentication.unwrap();
-            Ok(Client::new(Url::parse(&config.url).unwrap(), &config.db, &config.org).set_authentication(username, password))
+        if client.is_err(){
+            return Err(Error::Init(client.err().unwrap().to_string()));
         }
+
+        Ok(client.unwrap())
+
 
     }
 
     async fn get(&self) -> Result<Self::Connection, Self::Error> {
         Ok(self.clone())
     }
-
 }
