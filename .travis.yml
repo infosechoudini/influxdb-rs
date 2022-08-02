@@ -1,6 +1,6 @@
 services:
   - docker
-  
+
 env:
   - DOCKER_COMPOSE_VERSION=1.29.2
 
@@ -10,7 +10,6 @@ before_install:
   - chmod +x docker-compose
   - sudo mv docker-compose /usr/local/bin
 script:
-  - docker pull influxdb:2.3
-  - docker-compose up -d influxdb
+  - docker-compose up -d influx_db
   - docker-compose build influxdb_rs
   - docker-compose up influxdb_rs
