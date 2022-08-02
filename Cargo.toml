@@ -10,7 +10,7 @@ edition = "2021"
 documentation = "https://docs.rs/influxdb_rs"
 repository = "https://github.com/infosechoudini/influxdb-rs"
 publish = true
-license-file = "LICENSE"
+license = "MIT/Apache-2.0"
 include = [
     "**/*.rs",
     "src/*.rs",
