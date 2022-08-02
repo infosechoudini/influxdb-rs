@@ -11,13 +11,13 @@ services:
     environment:
     ## DO NOT USE THIS IN PRODUCTION
     ## THIS IS FOR INTEGRATION TESTING ONLY!!!!!
-      - INFLUXDB_DB="test_db"
+      - INFLUXDB_DB=test_db
       - DOCKER_INFLUXDB_INIT_MODE=setup
-      - DOCKER_INFLUXDB_INIT_USERNAME="admin"
-      - DOCKER_INFLUXDB_INIT_PASSWORD="password123!"
-      - DOCKER_INFLUXDB_INIT_ORG="test_org"
-      - DOCKER_INFLUXDB_INIT_BUCKET="test_bucket"
-      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN="0123456789"
+      - DOCKER_INFLUXDB_INIT_USERNAME=admin
+      - DOCKER_INFLUXDB_INIT_PASSWORD=password123!
+      - DOCKER_INFLUXDB_INIT_ORG=test_org
+      - DOCKER_INFLUXDB_INIT_BUCKET=test_bucket
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=0123456789
   influxdb_rs:
     build:
       context: ./
