@@ -1,0 +1,15 @@
+#RUST DOCKERIGNORE
+target
+Cargo.lock
+README.md
+Dockerfile
+.dockerignore
+.git
+.gitignore
+
+#Crate Specific
+influxconfigs
+influxdb_database
+
+#SECRETS
+.env
