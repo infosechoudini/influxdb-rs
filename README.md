@@ -48,7 +48,7 @@ This is the InfluxDB driver to be utilized with the Rust programming language. I
 
 ```
 [dependencies]
-influxdb_rs = {path = https://github.com/infosechoudini/influxdb-rs }
+influxdb_rs = "0.1"
 ```
 
 ### http

@@ -7,6 +7,7 @@ readme = "README.md"
 keywords = ["influxdb", "driver", "client"]
 categories = ["database"]
 edition = "2021"
+documentation = "https://docs.rs/influxdb_rs"
 repository = "https://github.com/infosechoudini/influxdb-rs"
 publish = true
 license-file = "LICENSE"
