@@ -13,7 +13,3 @@ influxdb_database
 influxconfigs
 
 .env
-
-#Docker Testing
-docker-compose.yml
-Dockerfile
