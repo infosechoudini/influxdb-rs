@@ -82,7 +82,9 @@ impl Client {
             _ => {
                 let err = res.text().await?;
 
-                Err(error::Error::SyntaxError(serialization::conversion(&err)))
+                Err(error::Error{
+                    inner: error::ErrorKind::SyntaxError(serialization::conversion(&err))
+                })
             }
         }
         
@@ -153,7 +155,9 @@ impl Client {
             let err = res.text().await?;
             match status{
                 204 => Ok(true),
-                _ => Err(error::Error::SyntaxError(serialization::conversion(&err))),
+                _ => Err(error::Error{
+                    inner: error::ErrorKind::SyntaxError(serialization::conversion(&err))
+            }),
             }
         }
         
@@ -186,7 +190,9 @@ impl Client {
             _ => {
                 let err = res.text().await?;
 
-                Err(error::Error::SyntaxError(serialization::conversion(&err)))
+                Err(error::Error{
+                    inner: error::ErrorKind::SyntaxError(serialization::conversion(&err))
+            })
             }
         }
 
@@ -232,18 +238,24 @@ impl Client {
 
         match status {
             204 => Ok(()),
-            400 => Err(error::Error::SyntaxError(serialization::conversion(&err))),
-            401 | 403 => Err(error::Error::InvalidCredentials(
+            400 => Err(error::Error {
+                inner: error::ErrorKind::SyntaxError(serialization::conversion(&err))
+            }),
+            401 | 403 => Err(error::Error {
+                inner: error::ErrorKind::InvalidCredentials(
                 "Invalid authentication credentials.".to_string(),
-            )),
-            404 => Err(error::Error::DataBaseDoesNotExist(
+            )}),
+            404 => Err(error::Error{
+                inner: error::ErrorKind::DataBaseDoesNotExist(
                 serialization::conversion(&err),
-            )),
-            500 => Err(error::Error::RetentionPolicyDoesNotExist(err)),
-            status => Err(error::Error::Unknown(format!(
+            )}),
+            500 => Err(error::Error{
+                inner: error::ErrorKind::RetentionPolicyDoesNotExist(err)}),
+            status => Err(error::Error{
+                inner: error::ErrorKind::Unknown(format!(
                 "Received status code {}",
                 status
-            ))),
+            ))}),
         }
     }
 
@@ -277,14 +289,18 @@ impl Client {
             400 => {
                 let err = res.text().await?;
 
-                Err(error::Error::SyntaxError(serialization::conversion(
+                Err(error::Error{
+                    inner: error::ErrorKind::SyntaxError(serialization::conversion(
                     &err,
-                )))
+                ))})
             }
-            401 | 403 => Err(error::Error::InvalidCredentials(
+            401 | 403 => Err(error::Error{
+                inner: error::ErrorKind::InvalidCredentials(
                 "Invalid authentication credentials.".to_string(),
-            )),
-            _ => Err(error::Error::Unknown("There is something wrong".to_string())),
+            )}),
+            _ => Err(error::Error{
+                inner: error::ErrorKind::Unknown("There is something wrong".to_string())
+            }),
         }
     }
 
@@ -318,8 +334,11 @@ impl Client {
 
         match status {
             201 => Ok(()),
-            422 => Err(error::Error::SyntaxError(serialization::conversion(&err))),
-            _ => Err(error::Error::SyntaxError(serialization::conversion(&err)))
+            422 => Err(error::Error{
+                inner: error::ErrorKind::SyntaxError(serialization::conversion(&err))}),
+            _ => Err(error::Error{
+                inner: error::ErrorKind::SyntaxError(serialization::conversion(&err))
+            })
         }
     }
 
@@ -345,7 +364,8 @@ impl Client {
             _ => {
                 let err = res.text().await?;
 
-                Err(error::Error::SyntaxError(serialization::conversion(&err)))
+                Err(error::Error{
+                    inner: error::ErrorKind::SyntaxError(serialization::conversion(&err))})
             }
         }
 
@@ -370,8 +390,10 @@ impl Client {
 
         match status {
             204 => Ok(()),
-            404 => Err(error::Error::SyntaxError(serialization::conversion(&err))),
-            _ => Err(error::Error::SyntaxError(serialization::conversion(&err)))
+            404 => Err(error::Error{
+                inner: error::ErrorKind::SyntaxError(serialization::conversion(&err))}),
+            _ => Err(error::Error{
+                inner: error::ErrorKind::SyntaxError(serialization::conversion(&err))})
         }
     }
 

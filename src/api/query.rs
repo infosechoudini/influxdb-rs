@@ -32,23 +32,27 @@ impl Client {
                 400 => {
                     let json_data = res.text().await?;
     
-                    return Err(error::Error::SyntaxError(serialization::conversion(
+                    return Err(error::Error{
+                        inner: error::ErrorKind::SyntaxError(serialization::conversion(
                         &json_data,
-                    )));
+                    ))});
                 }
                 401 | 403 => {
-                        return Err(error::Error::InvalidCredentials(
+                        return Err(error::Error{
+                            inner: error::ErrorKind::InvalidCredentials(
                             "Invalid authentication credentials.".to_string()
-                        ));
+                        )});
                 }
                 _ => {
                     let err = res.text().await?;
-                    return Err(error::Error::Unknown(err));
+                    return Err(error::Error{
+                        inner: error::ErrorKind::Unknown(err)});
                 }
             }
 
         } else {
-            return Err(error::Error::Unknown("No flux query to serialize".to_string()));
+            return Err(error::Error{
+                inner: error::ErrorKind::Unknown("No flux query to serialize".to_string())});
         };
 
         

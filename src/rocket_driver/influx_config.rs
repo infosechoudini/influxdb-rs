@@ -12,7 +12,6 @@ pub struct Config {
     pub url: String,
     /// Minimum number of connections to maintain in the pool.
     ///
-    /// **Note:** `deadpool` drivers do not support and thus ignore this value.
     ///
     /// _Default:_ `None`.
     pub min_connections: Option<u32>,
