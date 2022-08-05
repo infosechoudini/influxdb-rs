@@ -54,7 +54,7 @@ This is the InfluxDB driver to be utilized with the Rust programming language. I
 
 ```
 [dependencies]
-influxdb_rs = "0.1"
+influxdb_rs = "0.2"
 ```
 
 ### http
