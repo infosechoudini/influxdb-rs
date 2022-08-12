@@ -38,9 +38,9 @@ pub struct Point<'a> {
 
 impl<'a> Point<'a> {
     /// Create a new point
-    pub fn new(measurement: &str) -> Point {
+    pub fn new<T: Into<String>>(measurement: T) -> Point<'a> {
         Point {
-            measurement: String::from(measurement),
+            measurement: measurement.into(),
             tags: HashMap::new(),
             fields: HashMap::new(),
             timestamp: None,
