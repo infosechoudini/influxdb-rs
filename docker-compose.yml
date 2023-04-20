@@ -1,7 +1,7 @@
 version: "3"
 services:
   influx_db:
-    image: influxdb:2.3
+    image: influxdb:2.7
     mem_limit: 512m
     ports:
       - "8086:8086"
