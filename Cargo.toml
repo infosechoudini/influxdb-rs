@@ -1,6 +1,6 @@
 [package]
 name = "influxdb_rs"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["Harry Thomas @infosechoudini"]
 description = "InfluxDBv2 Rust driver"
 readme = "README.md"
@@ -34,7 +34,7 @@ rocket_db_pools = { version = "0.1.0-rc.2", optional = true }
 [dev-dependencies]
 tempdir = "0.3"
 tokio = { version = "1", features = ["full"] }
-criterion = { version = "0.3", features = ["async_tokio"] }
+criterion = { version = "0.4", features = ["async_tokio"] }
 
 [features]
 # Rocker Driver

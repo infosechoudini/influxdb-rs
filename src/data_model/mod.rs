@@ -14,3 +14,7 @@ pub mod labels;
 pub mod data_points;
 /// File Struct used for Extern Flux Queries
 pub mod file;
+/// User Structs and Enums
+pub mod user;
+/// Authorization Structs
+pub mod authorization;

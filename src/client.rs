@@ -56,7 +56,40 @@ impl Client {
             client: httpclient,
         };
 
-        client.org_id = client.get_ord_id().await?;
+        client.org_id = client.get_org_id().await?;
+        Ok(client)
+
+
+    }
+
+    /// Create a new influxdb client with http
+    #[inline] 
+    pub async fn new_without_org_id<T>(host: Url, bucket: T, org: T, jwt: T) -> Result<Self, error::Error>
+    where
+        T: Into<String>,
+    {
+
+        let token = jwt.into();
+        let authorized = format!("Token {}", token.clone());
+
+        let mut headers = header::HeaderMap::new();
+        headers.insert("Authorization", header::HeaderValue::from_str(&authorized).unwrap());
+
+        // get a client builder
+        let httpclient = reqwest::Client::builder()
+            .default_headers(headers)
+            .build()?;
+
+        let client = Client {
+            host,
+            bucket: bucket.into(),
+            org: org.into(),
+            org_id: "".to_string(),
+            authentication: None,
+            jwt_token: Some(token.clone()),
+            client: httpclient,
+        };
+
         Ok(client)
 
 
@@ -64,7 +97,7 @@ impl Client {
 
     /// Retrieves Organization ID which is represented inside InfluxDB
     #[inline] 
-    pub async fn get_ord_id(&mut self) -> Result<String, error::Error> {
+    pub async fn get_org_id(&mut self) -> Result<String, error::Error> {
         let param = vec![("org", self.org.as_str())];
 
         let url = self.build_url("api/v2/orgs", Some(param));
@@ -76,6 +109,13 @@ impl Client {
         match status {
             200 => {
                 let contents = res.json::<data_model::org::Orgs>().await?;
+
+                if contents.orgs.len() == 0 {
+                    return Err(error::Error{
+                        inner: error::ErrorKind::SyntaxError("No organization found".to_string())
+                    });
+                }
+
                 let org_id = contents.orgs[0].id.clone();
                 Ok(org_id)
             }
@@ -416,4 +456,150 @@ impl Client {
             Client::new(Url::parse("http://localhost:8086").unwrap(), "test", "test", "00000000").await
         }
     }
+
+    ///Create a new user in InfluxDB.
+    pub async fn create_new_user(&self, name: &str, status: data_model::user::Status ) -> Result<data_model::user::UserResponse, error::Error> {
+        let url = self.build_url("api/v2/users", None);
+
+        let json_status = match status {
+            data_model::user::Status::Active => "active",
+            data_model::user::Status::Inactive => "inactive",
+        };
+        
+        let body = data_model::user::CreateUser{
+            name: name.to_string(),
+            status: json_status.to_string(),
+        };
+
+        let post_body = json!(body).to_string();
+
+        let fut = self.client.post(url.await).body(post_body).send();
+
+        let res = fut.await?;
+        let res_status = res.status().as_u16();
+
+        match res_status {
+            201 =>  {
+                let contents = res.json::<data_model::user::UserResponse>().await?;
+                Ok(contents)
+            },
+            400 => {
+                let err = res.text().await?;
+
+                return Err(error::Error{
+                    inner: error::ErrorKind::SyntaxError(serialization::conversion(&err))})
+            }
+            _ => {
+                let err = res.text().await?;
+
+                return Err(error::Error{
+                    inner: error::ErrorKind::SyntaxError(serialization::conversion(&err))})
+            }
+        }
+    }
+
+    /// Create Authorization for user
+    pub async fn create_authorization(&self, user_id: Option<String>, org_id: &str, permissions: Vec<data_model::authorization::AuthPermissions>, status: data_model::user::Status, description: &str) -> Result<data_model::authorization::AuthorizationResponse, error::Error> {
+        let url = self.build_url("api/v2/authorizations", None);
+
+        let json_status = match status {
+            data_model::user::Status::Active => "active",
+            data_model::user::Status::Inactive => "inactive",
+        };
+
+        let body = data_model::authorization::CreateAuthorization{
+            org_id: org_id.to_string(),
+            user_id,
+            permissions,
+            status: json_status.to_string(),
+            description: description.to_string(),
+        };
+
+        let post_body = json!(body).to_string();
+
+        let fut = self.client.post(url.await).body(post_body).send();
+
+        let res = fut.await?;
+        let res_status = res.status().as_u16();
+
+        match res_status {
+            201 =>  {
+                let contents = res.json::<data_model::authorization::AuthorizationResponse>().await?;
+                Ok(contents)
+            },
+            400 => {
+                let err = res.text().await?;
+
+                return Err(error::Error{
+                    inner: error::ErrorKind::SyntaxError(serialization::conversion(&err))})
+            }
+            _ => {
+                let err = res.text().await?;
+
+                return Err(error::Error{
+                    inner: error::ErrorKind::SyntaxError(serialization::conversion(&err))})
+            }
+        }
+    }
+
+    /// List Users
+    pub async fn list_users(&self) -> Result<Vec<data_model::user::UserResponse>, error::Error> {
+        let url = self.build_url("api/v2/users", None);
+
+        let fut = self.client.get(url.await).send();
+
+        let res = fut.await?;
+        let res_status = res.status().as_u16();
+
+        match res_status {
+            200 =>  {
+                let contents = res.json::<data_model::user::ListUserResponse>().await?;
+                Ok(contents.users)
+            },
+            400 => {
+                let err = res.text().await?;
+
+                return Err(error::Error{
+                    inner: error::ErrorKind::SyntaxError(serialization::conversion(&err))})
+            }
+            _ => {
+                let err = res.text().await?;
+
+                return Err(error::Error{
+                    inner: error::ErrorKind::SyntaxError(serialization::conversion(&err))})
+            }
+        }
+    }
+
+    /// Delete A User
+    pub async fn delete_user(&self, user_id: &str) -> Result<(), error::Error> {
+        let url_format = format!("api/v2/users/{}", user_id);
+        let url = self.build_url(&url_format, None);
+
+        let fut = self.client.delete(url.await).send();
+
+        let res = fut.await?;
+        let res_status = res.status().as_u16();
+
+        match res_status {
+            204 =>  {
+                Ok(())
+            },
+            400 => {
+                let err = res.text().await?;
+
+                return Err(error::Error{
+                    inner: error::ErrorKind::SyntaxError(serialization::conversion(&err))})
+            }
+            _ => {
+                let err = res.text().await?;
+
+                return Err(error::Error{
+                    inner: error::ErrorKind::SyntaxError(serialization::conversion(&err))})
+            }
+        }
+    }
+
+
+    
 }
